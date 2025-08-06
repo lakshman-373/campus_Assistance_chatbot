@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TEC Smart Campus Chatbot</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .chat-box {
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .user {
+      text-align: right;
+    }
+    .bot {
+      text-align: left;
+    }
+    .message a {
+      color: #007bff;
+      text-decoration: underline;
+    }
+    /* Style for student photos */
+    .student-photo {
+      display: block;
+      margin-bottom: 5px;
+      border-radius: 10px;
+      max-width: 100px;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <h2 style="display: flex; align-items: center; gap: 10px;">
+  <img src="{{ url_for('static', filename='tec_logo.jpeg') }}" 
+       alt="College Logo" 
+       width="50" height="50"
+       style="display: block;">
+  Smart Campus Assistant
+</h2>
+
+
+
+
+    <div class="chat-box" id="chat-box"></div>
+    <div class="input-area">
+      <input type="text" id="user-input" placeholder="Type your message here..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById("chat-box");
+
+    // Function to convert plain URLs into clickable links
+    function convertLinks(text) {
+      if (text.includes("<a ")) {
+        return text;
+      }
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return text.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      });
+    }
+
+    function appendMessage(sender, text) {
+      const message = document.createElement("div");
+      message.classList.add("message", sender);
+
+      // Check if text contains an <img> tag
+      if (text.includes("<img")) {
+        message.innerHTML = text; // Allow direct rendering of image and text
+      } else {
+        const formatted = convertLinks(text);
+        message.innerHTML = (sender === "user" ? "👤 " : "🤖 ") + formatted;
+      }
+
+      chatBox.appendChild(message);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      appendMessage("user", userText);
+      input.value = "";
+
+      try {
+        const response = await fetch("/get_response", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message: userText })
+        });
+        const data = await response.json();
+        appendMessage("bot", data.response);
+      } catch (error) {
+        appendMessage("bot", "⚠️ Error contacting the server.");
+      }
+    }
+
+    // Allow pressing 'Enter' to send messages
+    document.getElementById("user-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
